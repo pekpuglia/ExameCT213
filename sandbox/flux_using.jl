@@ -50,3 +50,4 @@ xx = repeat(cat(interval..., dims=2), 1, 1, n)
 yy = repeat(cat(interval..., dims=3), 1, n, 1)
 z = model([xx;yy])[1,:,:]
 contour!(interval, interval, z)
+
