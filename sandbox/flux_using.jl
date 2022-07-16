@@ -70,13 +70,87 @@ function segmentation_load()
     dir_images = "sandbox/Images/"
     dir_masks = "sandbox/Masks/"
 
+    # Creates a vector of all images and masks from their directories
     allfiles_image = [img for img in readdir(dir_images)]
     allfiles_mask = [img for img in readdir(dir_masks)]
 
-    @printf "Number of samples: %d" length(allfiles_image)
+    # Partitions the samples in training and validation
+    @printf "Number of samples: %d\n" length(allfiles_image)
     total_samples = length(allfiles_image)
-    val_samples = Int(total_samples*(1-train_ratio))
+    val_samples = trunc(Int, total_samples*(1-train_ratio))
 
+    shuffled_images = shuffle(allfiles_image)
+    shuffled_masks = shuffle(allfiles_mask)
+    train_img_paths = shuffled_images[val_samples+1:end]
+    train_mask_paths = shuffled_masks[val_samples+1:end]
+    val_img_paths = shuffled_images[1:val_samples]
+    val_mask_paths = shuffled_masks[1:val_samples]
+
+    # This is my attempt to read and parse the images into arrays, but I'm stuck...
+    x_train = zeros((length(train_img_paths), img_height, img_width, img_channels))
+    y_train = zeros((length(train_mask_paths), img_height, img_width, 1))
+
+    x_val = zeros((length(val_img_paths), img_height, img_width, img_channels))
+    y_val = zeros((length(val_mask_paths), img_height, img_width, 1))
+
+    # Loading training images
+    image_dir = pwd()*"\\Images\\"
+    @printf "Loading training images: %d images ...\n" length(train_img_paths)
+    for (n, file_) in ProgressBar(zip(1:length(train_img_paths), train_img_paths))
+        file_path = image_dir*file_
+        img = load(file_path)
+        img = imresize(img, (img_width, img_height))
+        mat = channelview(img)
+        x_train[n,:,:,:] = permutedims(mat, (2,3,1))
+    end
+
+    # Loading training masks
+    masks_dir = pwd()*"\\Masks\\"
+    @printf "Loading training masks: %d masks ...\n" length(train_mask_paths)
+    for (n, file_) in ProgressBar(zip(1:length(train_mask_paths), train_mask_paths))
+        file_path = masks_dir*file_
+        img = load(file_path)
+        img = imresize(img, (img_width, img_height))
+        mat = channelview(img)
+        y_train[n,:,:,:] = permutedims(mat, (2,3,1))
+    end 
+
+    # Loading validation images
+    image_dir = pwd()*"\\Images\\"
+    @printf "Loading validation images: %d images ...\n" length(val_img_paths)
+    for (n, file_) in ProgressBar(zip(1:length(val_img_paths), val_img_paths))
+        file_path = image_dir*file_
+        img = load(file_path)
+        img = imresize(img, (img_width, img_height))
+        mat = channelview(img)
+        x_val[n,:,:,:] = permutedims(mat, (2,3,1))
+    end
+
+    # Loading validation masks
+    masks_dir = pwd()*"\\Masks\\"
+    @printf "Loading training masks: %d masks ...\n" length(val_mask_paths)
+    for (n, file_) in ProgressBar(zip(1:length(val_mask_paths), val_mask_paths))
+        file_path = masks_dir*file_
+        img = load(file_path)
+        img = imresize(img, (img_width, img_height))
+        mat = channelview(img)
+        y_val[n,:,:,:] = permutedims(mat, (2,3,1))
+    end
+
+    # Generate a random image to display
+    # TO-DO generate random mask aswell
+    random_image = rand(1:length(val_img_paths))
+    ImageShow.gif(x_val[random_image,:,:,:])
+
+    ################################################################
+    #= 
+        TO-DO:
+        - Add the model (unet_model(img_height, img_width, img_channels, num_classes))
+        - Compile
+        - Add model visualization tools 
+        - Predict results
+        - Plot a few tests (masks vs model)
+    =# 
 end
 
 
