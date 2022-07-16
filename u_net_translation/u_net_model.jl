@@ -1,4 +1,4 @@
-using Flux
+include("../utils/model.jl")
 ################################################################
 #= 
     TO-DO:
@@ -8,6 +8,8 @@ using Flux
     - Predict results
     - Plot a few tests (masks vs model)
 =# 
+
+
 function unet_model(img_height, img_width, img_channel, num_classes)
     #=
     This function returns a Flux CNN model for the fire segmentation problem.
@@ -113,12 +115,12 @@ function unet_model(img_height, img_width, img_channel, num_classes)
                                                 expanding_block_3,
                                                 expanding_block_4
                                             ),
-                                            (mx, x) -> cat(mx, x, dims=3)
+                                            ConcatenateConnection()
                                         ),
                                         ),
-                                    (mx, x) -> cat(mx, x, dims=3))
+                                    ConcatenateConnection())
                                 ),
-                        (mx, x) -> cat(mx, x, dims=3)
+                        ConcatenateConnection()
                         ),
                 output_layer
                 )
