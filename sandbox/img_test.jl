@@ -62,9 +62,13 @@ function mask_to_mat(mask::Matrix{Gray{N0f8}})
 end
 
 #gentler approach to image Loading: load single batch
-function load_batch(batch_size::Int, batch_index::Int, path_list::Vector{String})
-    return [img_file_to_mat(path) for path in path_list[batch_size*batch_index+1:(batch_index+1)*batch_size]]
+function load_img_batch(batch_size::Int, batch_index::Int, path_list::Vector{String})
+    return [rgb_to_mat(load(path)) for path in path_list[batch_size*batch_index+1:(batch_index+1)*batch_size]]
 end
+function load_mask_batch(batch_size::Int, batch_index::Int, path_list::Vector{String})
+    return [mask_to_mat(load(path)) for path in path_list[batch_size*batch_index+1:(batch_index+1)*batch_size]]
+end
+
 ##
 img,mat = img_file_to_mat(dir_images*train_img_paths[1])
 plot(img)
