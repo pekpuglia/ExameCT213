@@ -2,15 +2,16 @@ using Printf
 using Random
 using ProgressBars
 using FileIO, Plots, ImageShow
+#precisa do TestImages?
 using TestImages, Colors, Images
-
+##
 Random.seed!(3)
 
 # Training parameters
 batch_size = 16
 epochs = 30
 train_ratio = 0.85
-val_set_ratio = 0.15
+val_ratio = 1 - train_ratio
 num_classes = 2
 img_channels = 3
 img_width = 512
@@ -19,75 +20,34 @@ img_size = (img_width, img_height)
 training_plot = true
 dir_images = "Images/"
 dir_masks = "Masks/"
-
+##
 
 # Creates a vector of all images and masks from their directories
 allfiles_image = [img for img in readdir(dir_images)]
 allfiles_mask = [img for img in readdir(dir_masks)]
 
 # Partitions the samples in training and validation
-@printf "Number of samples: %d\n" length(allfiles_image)
 total_samples = length(allfiles_image)
-val_samples = trunc(Int, total_samples*(1-train_ratio))
-
-shuffled_images = shuffle(allfiles_image)
-shuffled_masks = shuffle(allfiles_mask)
+@printf "Number of samples: %d\n" total_samples 
+val_samples = trunc(Int, total_samples*(val_ratio))
+#shuffled masks and images still paired
+shuffle_perm = randperm(total_samples)
+shuffled_images = allfiles_image[shuffle_perm]
+shuffled_masks = allfiles_mask[shuffle_perm]
 train_img_paths = shuffled_images[val_samples+1:end]
 train_mask_paths = shuffled_masks[val_samples+1:end]
 val_img_paths = shuffled_images[1:val_samples]
 val_mask_paths = shuffled_masks[1:val_samples]
-
-# This is my attempt to read and parse the images into arrays, but I'm stuck...
-x_train = zeros((length(train_img_paths), img_height, img_width, img_channels))
-y_train = zeros((length(train_mask_paths), img_height, img_width, 1))
-
-x_val = zeros((length(val_img_paths), img_height, img_width, img_channels))
-y_val = zeros((length(val_mask_paths), img_height, img_width, 1))
-
-# Loading training images
-image_dir = pwd()*"\\Images\\"
-@printf "Loading training images: %d images ...\n" length(train_img_paths)
-for (n, file_) in ProgressBar(zip(1:length(train_img_paths), train_img_paths))
-    file_path = image_dir*file_
-    img = load(file_path)
-    img = imresize(img, (img_width, img_height))
-    mat = channelview(img)
-    x_train[n,:,:,:] = permutedims(mat, (2,3,1))
+##
+#gentler approach to image Loading
+function img_file_to_mat(path::String)
+    img = load(path)
+    #;;; stacks on the 3rd dimension
+    return Float64[getproperty.(img, :r);;; getproperty.(img, :g);;; getproperty.(img, :b)]
 end
-
-# Loading training masks
-masks_dir = pwd()*"\\Masks\\"
-@printf "Loading training masks: %d masks ...\n" length(train_mask_paths)
-for (n, file_) in ProgressBar(zip(1:length(train_mask_paths), train_mask_paths))
-    file_path = masks_dir*file_
-    img = load(file_path)
-    img = imresize(img, (img_width, img_height))
-    mat = channelview(img)
-    y_train[n,:,:,:] = permutedims(mat, (2,3,1))
-end 
-
-# Loading validation images
-image_dir = pwd()*"\\Images\\"
-@printf "Loading validation images: %d images ...\n" length(val_img_paths)
-for (n, file_) in ProgressBar(zip(1:length(val_img_paths), val_img_paths))
-    file_path = image_dir*file_
-    img = load(file_path)
-    img = imresize(img, (img_width, img_height))
-    mat = channelview(img)
-    x_val[n,:,:,:] = permutedims(mat, (2,3,1))
+#load single batch
+function load_batch(batch_size::Int, batch_index::Int, path_list::Vector{String})
+    return [img_file_to_mat(path) for path in path_list[batch_size*batch_index+1:(batch_index+1)*batch_size]]
 end
-
-# Loading validation masks
-masks_dir = pwd()*"\\Masks\\"
-@printf "Loading training masks: %d masks ...\n" length(val_mask_paths)
-for (n, file_) in ProgressBar(zip(1:length(val_mask_paths), val_mask_paths))
-    file_path = masks_dir*file_
-    img = load(file_path)
-    img = imresize(img, (img_width, img_height))
-    mat = channelview(img)
-    y_val[n,:,:,:] = permutedims(mat, (2,3,1))
-end
-
-# Generate a random image and mask to display
-random_image = rand(1:length(val_img_paths))
-ImageShow.gif(x_val[random_image,:,:,:])
+##
+ImageShow.gif(img_file_to_mat(dir_images*train_img_paths[1]))
