@@ -39,20 +39,24 @@ train_mask_paths = shuffled_masks[val_samples+1:end]
 val_img_paths = shuffled_images[1:val_samples]
 val_mask_paths = shuffled_masks[1:val_samples]
 ##
-#return displayable img and array
-function img_file_to_mat(path::String)
-    img = load(path)
+#return displayable array with RGB channels
+function rgb_to_mat(img::Matrix{RGB{N0f8}})
     #;;; stacks on the 3rd dimension
-    return img, Float64[getproperty.(img, :r);;; getproperty.(img, :g);;; getproperty.(img, :b)]
+    return Float64[getproperty.(img, :r);;; getproperty.(img, :g);;; getproperty.(img, :b)]
 end
+
+#= HSV convention:
+    h::T # Hue in [0,360]
+    s::T # Saturation in [0,1]
+    v::T # Value in [0,1]
+=#
 #=
     todo:
-    - struct to represent inputs
     - train unet model
     - build our model
 =#
 #return bit matrix
-function mask_file_to_mat(path::String)
+function mask_to_mat(mask::Matrix{Gray{N0f8}})
     #each png pixel has either 0x0 or 0x1 
     return getproperty.(load(path), :val) .> 0
 end
