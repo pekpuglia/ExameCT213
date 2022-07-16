@@ -25,6 +25,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
     example: layer = Conv((5,5), 3 => 7, relu)
     =#
 
+
     contracting_block_1 = Chain(
         # First convolutional layer
         Conv((3,3), img_channel => 16, pad=SamePad(), elu),
