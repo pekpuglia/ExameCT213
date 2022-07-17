@@ -43,26 +43,20 @@ train_mask_paths = shuffled_masks[val_samples+1:end]
 val_img_paths = shuffled_images[1:val_samples]
 val_mask_paths = shuffled_masks[1:val_samples]
 ##
-
-train_img_set  = load_batch(batch_size, 1,  img_height, img_width, train_img_paths)
-train_mask_set = load_batch(batch_size, 1,  img_height, img_width, train_mask_paths)
-val_img_set    = load_batch(batch_size, 1,  img_height, img_width, val_img_paths)
-val_mask_set   = load_batch(batch_size, 1,  img_height, img_width, val_mask_paths)
-##
 ########################################### 
 #    Loading and training the model
 ###########################################
 
 model = unet_model(img_height, img_width, img_channels, num_classes)
 # Loss function
-loss(x,y) = Flux.logitcrossentropy(model(x), y)
+loss(x,y) = Flux.crossentropy(model(x), y)
 
 # Loading model and dataset onto GPU
-model = gpu(model)
-train_img_set = gpu.(train_img_set)
-train_mask_set = gpu.(train_mask_set)
-val_img_set = gpu.(val_img_set)
-val_mask_set = gpu.(val_mask_set)
+# model = gpu(model)
+# train_img_set = gpu.(train_img_set)
+# train_mask_set = gpu.(train_mask_set)
+# val_img_set = gpu.(val_img_set)
+# val_mask_set = gpu.(val_mask_set)
 ##
 
 # Training options
@@ -72,8 +66,12 @@ best_acc = 0.0
 last_improvement = 0
 parameters = Flux.params(model)
 for epoch_idx in ProgressBar(1:epochs)
+    train_img_set  = load_batch(batch_size, epoch_idx,  img_height, img_width, train_img_paths)
+    train_mask_set = load_batch(batch_size, epoch_idx,  img_height, img_width, train_mask_paths)
+    @info "dataset loaded"
     # Training for a single epoch
     Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
+    @info "trained"
     # Terminate if NaN
     if anynan(paramvec(model))
         @error "NaN params"
@@ -91,6 +89,8 @@ for epoch_idx in ProgressBar(1:epochs)
         global best_acc = acc
         global last_improvement = epoch_idx
     end
+    CUDA.unsafe_free!(train_img_set)
+    CUDA.unsafe_free!(train_mask_set)
 end
 ##
 ###########################################
