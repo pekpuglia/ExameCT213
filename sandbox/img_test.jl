@@ -3,7 +3,7 @@ using Random
 using ProgressBars
 using FileIO, Plots, ImageShow, Images
 using Colors
-using Parameters: @with_kw
+using CUDA
 include("../utils/image.jl")
 include("../u_net_translation/u_net_model.jl")
 
@@ -44,15 +44,11 @@ val_img_paths = shuffled_images[1:val_samples]
 val_mask_paths = shuffled_masks[1:val_samples]
 ##
 
-train_img_set = load_batch(batch_size, 1, train_img_paths, "img")
-train_mask_set = load_batch(batch_size, 1, train_mask_paths, "mask")
-val_img_set = load_batch(batch_size, 1, val_img_paths, "img")
-val_mask_set = load_batch(batch_size, 1, val_mask_paths, "mask")
-#= train_img_set = rgb_to_mat(load(dir_images*train_img_paths))
-train_mask_set = mask_to_mat(load(dir_images*train_img_paths))
-val_img_set = rgb_to_mat(load(dir_images*val_img_paths))
-val_mask_set = mask_to_mat(load(dir_images*val_img_paths))
- =#
+train_img_set  = load_batch(batch_size, 1,  img_height, img_width, train_img_paths)
+train_mask_set = load_batch(batch_size, 1,  img_height, img_width, train_mask_paths)
+val_img_set    = load_batch(batch_size, 1,  img_height, img_width, val_img_paths)
+val_mask_set   = load_batch(batch_size, 1,  img_height, img_width, val_mask_paths)
+##
 ########################################### 
 #    Loading and training the model
 ###########################################
@@ -67,16 +63,17 @@ train_img_set = gpu.(train_img_set)
 train_mask_set = gpu.(train_mask_set)
 val_img_set = gpu.(val_img_set)
 val_mask_set = gpu.(val_mask_set)
-
+##
 
 # Training options
 opt = ADAM(0.01)
 @info("Beginning training loop...")
 best_acc = 0.0
 last_improvement = 0
+parameters = Flux.params(model)
 for epoch_idx in ProgressBar(1:epochs)
     # Training for a single epoch
-    Flux.train!(loss, Flux.params(model), [(train_img_set, train_mask_set)], opt)
+    Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
     # Terminate if NaN
     if anynan(paramvec(model))
         @error "NaN params"
@@ -95,7 +92,7 @@ for epoch_idx in ProgressBar(1:epochs)
         last_improvement = epoch_idx
     end
 end
-
+##
 ###########################################
 #           Validating the model
 ###########################################
