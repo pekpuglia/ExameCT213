@@ -88,8 +88,8 @@ for epoch_idx in ProgressBar(1:epochs)
     if acc >= best_acc
         @info(" -> New best accuracy. Saving model")
         BSON.@save joinpath(args.savepath, "u_net.bson") params=cpu.(params(model)) epoch_idx acc
-        best_acc = acc
-        last_improvement = epoch_idx
+        global best_acc = acc
+        global last_improvement = epoch_idx
     end
 end
 ##

@@ -30,7 +30,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         # First convolutional layer
         Conv((3,3), img_channel => 16, pad=SamePad(), elu),
         Dropout(0.1),
-        Conv((3,3), img_channel => 16, pad=SamePad(), elu),
+        Conv((3,3), 16 => 16, pad=SamePad(), elu),
         MaxPool((2,2))
     )
 
@@ -38,7 +38,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         # Second convolutional layer
         Conv((3,3), 16 => 32, pad=SamePad(), elu),
         Dropout(0.1),
-        Conv((3,3), 16 => 32, pad=SamePad(), elu),
+        Conv((3,3), 32 => 32, pad=SamePad(), elu),
         MaxPool((2,2))
     )
     
@@ -46,7 +46,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         # Third convolutional layer
         Conv((3,3), 32 => 64, pad=SamePad(), elu),
         Dropout(0.2),
-        Conv((3,3), 32 => 64, pad=SamePad(), elu),
+        Conv((3,3), 64 => 64, pad=SamePad(), elu),
         MaxPool((2,2))
     )
 
@@ -54,7 +54,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         # Fourth convolutional layer
         Conv((3,3), 64 => 128, pad=SamePad(), elu),
         Dropout(0.2),
-        Conv((3,3), 64 => 128, pad=SamePad(), elu),
+        Conv((3,3), 128 => 128, pad=SamePad(), elu),
         MaxPool((2,2))
     )
 
@@ -62,7 +62,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         # Bottleneck block
         Conv((3,3), 128 => 256, pad=SamePad(), elu),
         Dropout(0.3),
-        Conv((3,3), 128 => 256, pad=SamePad(), elu),
+        Conv((3,3), 256 => 256, pad=SamePad(), elu),
     )
 
     expanding_block_1 = Chain(
