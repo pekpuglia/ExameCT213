@@ -5,6 +5,7 @@ end
 (conn::ConcatenateConnection)(mx, x) = cat(mx, x, dims=3)
 import Base.string
 string(conn::ConcatenateConnection) = "concatenation"
+Flux.@functor ConcatenateConnection
 
 function model_summary(model::Chain, indent = 0)
     for layer in model.layers

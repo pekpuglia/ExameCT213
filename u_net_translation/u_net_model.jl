@@ -38,6 +38,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         Conv((3,3), 16 => 16, pad=SamePad(), elu),
         MaxPool((2,2))
     )
+    cb1_out_c = 16
 
     contracting_block_2 = Chain(
         
@@ -47,6 +48,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         Conv((3,3), 32 => 32, pad=SamePad(), elu),
         MaxPool((2,2))
     )
+    cb2_out_c = 32
     
     contracting_block_3 = Chain(
         
@@ -56,6 +58,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         Conv((3,3), 64 => 64, pad=SamePad(), elu),
         MaxPool((2,2))
     )
+    cb3_out_c = 64
 
     contracting_block_4 = Chain(
         
@@ -65,6 +68,7 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         Conv((3,3), 128 => 128, pad=SamePad(), elu),
         MaxPool((2,2))
     )
+    cb4_out_c = 128
 
     bottleneck_block = Chain(
         
@@ -73,45 +77,50 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         Dropout(0.3),
         Conv((3,3), 256 => 256, pad=SamePad(), elu)
     )
+    btn_out_c = 256
 
     expanding_block_1 = Chain(
         
         # First convolutional layer
-        ConvTranspose((2,2), 256 => 128, stride=(2,2), pad=SamePad(), elu),
+        ConvTranspose((2,2), btn_out_c+cb4_out_c => 128, stride=(2,2), pad=SamePad(), elu),
         Conv((3,3), 128 => 128, pad=SamePad(), elu),
         Dropout(0.2),
         Conv((3,3), 128 => 128, pad=SamePad(), elu)
     )
+    ex1_out_c = 128
 
     expanding_block_2 = Chain(
         
         # Second convolutional layer
-        ConvTranspose((2,2), 128 => 64, stride=(2,2), pad=SamePad(), elu),
+        ConvTranspose((2,2), cb3_out_c+ex1_out_c => 64, stride=(2,2), pad=SamePad(), elu),
         Conv((3,3), 64 => 64, pad=SamePad(), elu),
         Dropout(0.2),
         Conv((3,3), 64 => 64, pad=SamePad(), elu)
     )
+    ex2_out_c = 64
     
     expanding_block_3 = Chain(
         
         # Third convolutional layer
-        ConvTranspose((2,2), 64 => 32, stride=(2,2), pad=SamePad(), elu),
+        ConvTranspose((2,2), cb2_out_c+ex2_out_c => 32, stride=(2,2), pad=SamePad(), elu),
         Conv((3,3), 32 => 32, pad=SamePad(), elu),
         Dropout(0.1),
         Conv((3,3), 32 => 32, pad=SamePad(), elu)
     )
+    ex3_out_c = 32
 
     expanding_block_4 = Chain(
         
         # Fourth convolutional layer
-        ConvTranspose((2,2), 32 => 16, stride=(2,2), pad=SamePad(), elu),
+        ConvTranspose((2,2), cb1_out_c+ex3_out_c => 16, stride=(2,2), pad=SamePad(), elu),
         Conv((3,3), 16 => 16, pad=SamePad(), elu),
         Dropout(0.1),
         Conv((3,3), 16 => 16, pad=SamePad(), elu)
     )
+    ex4_out_c = 16
     #problema
     output_layer = Chain(
-        Conv((1,1), 16 => 1, σ)
+        Conv((1,1), ex4_out_c => 1, σ)
     )
 
     return Chain(
@@ -124,20 +133,24 @@ function unet_model(img_height, img_width, img_channel, num_classes)
                                 Chain(contracting_block_4,
                                     SkipConnection(
                                         bottleneck_block,
-                                        ConcatenateConnection()
+                                        (mx, x) -> cat(mx, x, dims=3)
                                     ),
+                                    debug_layer,
                                     expanding_block_1
                                 ),
-                                ConcatenateConnection()
+                                (mx, x) -> cat(mx, x, dims=3)
                             ),
+                            debug_layer,
                             expanding_block_2
                         ),
-                        ConcatenateConnection()
+                        (mx, x) -> cat(mx, x, dims=3)
                     ),
+                    debug_layer,
                     expanding_block_3
                 ),
-                ConcatenateConnection()
+                (mx, x) -> cat(mx, x, dims=3)
             ),
+            debug_layer,
             expanding_block_4
         ),
         output_layer

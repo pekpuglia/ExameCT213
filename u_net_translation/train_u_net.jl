@@ -61,10 +61,11 @@ loss(x,y) = Flux.crossentropy(model(x), y)
 
 # Training options
 opt = ADAM(0.01)
-@info("Beginning training loop...")
 best_acc = 0.0
 last_improvement = 0
-parameters = Flux.params(model)
+parameters = Flux.params(model);
+##
+@info("Beginning training loop...")
 for epoch_idx in ProgressBar(1:epochs)
     train_img_set  = load_batch(batch_size, epoch_idx,  img_height, img_width, train_img_paths)
     train_mask_set = load_batch(batch_size, epoch_idx,  img_height, img_width, train_mask_paths)
@@ -73,7 +74,7 @@ for epoch_idx in ProgressBar(1:epochs)
     Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
     @info "trained"
     # Terminate if NaN
-    if anynan(paramvec(model))
+    if anynan(parameters)
         @error "NaN params"
         break
     end
@@ -89,8 +90,6 @@ for epoch_idx in ProgressBar(1:epochs)
         global best_acc = acc
         global last_improvement = epoch_idx
     end
-    CUDA.unsafe_free!(train_img_set)
-    CUDA.unsafe_free!(train_mask_set)
 end
 ##
 ###########################################
