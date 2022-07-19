@@ -33,9 +33,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
     contracting_block_1 = Chain(
         
         # First convolutional layer
-        Conv((3,3), img_channel => 16, pad=SamePad(), elu),
+        Conv((3,3), img_channel => 16, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.1),
-        Conv((3,3), 16 => 16, pad=SamePad(), elu),
+        Conv((3,3), 16 => 16, pad=SamePad(), elu, init = Flux.kaiming_normal),
         MaxPool((2,2))
     )
     cb1_out_c = 16
@@ -43,9 +43,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
     contracting_block_2 = Chain(
         
         # Second convolutional layer
-        Conv((3,3), 16 => 32, pad=SamePad(), elu),
+        Conv((3,3), 16 => 32, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.1),
-        Conv((3,3), 32 => 32, pad=SamePad(), elu),
+        Conv((3,3), 32 => 32, pad=SamePad(), elu, init = Flux.kaiming_normal),
         MaxPool((2,2))
     )
     cb2_out_c = 32
@@ -53,9 +53,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
     contracting_block_3 = Chain(
         
         # Third convolutional layer
-        Conv((3,3), 32 => 64, pad=SamePad(), elu),
+        Conv((3,3), 32 => 64, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.2),
-        Conv((3,3), 64 => 64, pad=SamePad(), elu),
+        Conv((3,3), 64 => 64, pad=SamePad(), elu, init = Flux.kaiming_normal),
         MaxPool((2,2))
     )
     cb3_out_c = 64
@@ -63,9 +63,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
     contracting_block_4 = Chain(
         
         # Fourth convolutional layer
-        Conv((3,3), 64 => 128, pad=SamePad(), elu),
+        Conv((3,3), 64 => 128, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.2),
-        Conv((3,3), 128 => 128, pad=SamePad(), elu),
+        Conv((3,3), 128 => 128, pad=SamePad(), elu, init = Flux.kaiming_normal),
         MaxPool((2,2))
     )
     cb4_out_c = 128
@@ -73,9 +73,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
     bottleneck_block = Chain(
         
         # Bottleneck block
-        Conv((3,3), 128 => 256, pad=SamePad(), elu),
+        Conv((3,3), 128 => 256, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.3),
-        Conv((3,3), 256 => 256, pad=SamePad(), elu)
+        Conv((3,3), 256 => 256, pad=SamePad(), elu, init = Flux.kaiming_normal)
     )
     btn_out_c = 256
 
@@ -83,9 +83,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         
         # First convolutional layer
         ConvTranspose((2,2), btn_out_c+cb4_out_c => 128, stride=(2,2), pad=SamePad(), elu),
-        Conv((3,3), 128 => 128, pad=SamePad(), elu),
+        Conv((3,3), 128 => 128, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.2),
-        Conv((3,3), 128 => 128, pad=SamePad(), elu)
+        Conv((3,3), 128 => 128, pad=SamePad(), elu, init = Flux.kaiming_normal)
     )
     ex1_out_c = 128
 
@@ -93,9 +93,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         
         # Second convolutional layer
         ConvTranspose((2,2), cb3_out_c+ex1_out_c => 64, stride=(2,2), pad=SamePad(), elu),
-        Conv((3,3), 64 => 64, pad=SamePad(), elu),
+        Conv((3,3), 64 => 64, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.2),
-        Conv((3,3), 64 => 64, pad=SamePad(), elu)
+        Conv((3,3), 64 => 64, pad=SamePad(), elu, init = Flux.kaiming_normal)
     )
     ex2_out_c = 64
     
@@ -103,9 +103,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         
         # Third convolutional layer
         ConvTranspose((2,2), cb2_out_c+ex2_out_c => 32, stride=(2,2), pad=SamePad(), elu),
-        Conv((3,3), 32 => 32, pad=SamePad(), elu),
+        Conv((3,3), 32 => 32, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.1),
-        Conv((3,3), 32 => 32, pad=SamePad(), elu)
+        Conv((3,3), 32 => 32, pad=SamePad(), elu, init = Flux.kaiming_normal)
     )
     ex3_out_c = 32
 
@@ -113,9 +113,9 @@ function unet_model(img_height, img_width, img_channel, num_classes)
         
         # Fourth convolutional layer
         ConvTranspose((2,2), cb1_out_c+ex3_out_c => 16, stride=(2,2), pad=SamePad(), elu),
-        Conv((3,3), 16 => 16, pad=SamePad(), elu),
+        Conv((3,3), 16 => 16, pad=SamePad(), elu, init = Flux.kaiming_normal),
         Dropout(0.1),
-        Conv((3,3), 16 => 16, pad=SamePad(), elu)
+        Conv((3,3), 16 => 16, pad=SamePad(), elu, init = Flux.kaiming_normal)
     )
     ex4_out_c = 16
     #problema

@@ -13,8 +13,8 @@ include("../u_net_translation/u_net_model.jl")
 Random.seed!(3)
 
 # Training parameters
-batch_size = 16
-epochs = 30
+batch_size = 1
+epochs = 1
 train_ratio = 0.85
 val_ratio = 1 - train_ratio
 num_classes = 2
@@ -50,7 +50,7 @@ val_mask_paths = shuffled_masks[1:val_samples]
 
 model = unet_model(img_height, img_width, img_channels, num_classes)
 # Loss function
-loss(x,y) = Flux.crossentropy(model(x), y)
+loss(x,y) = Flux.binarycrossentropy(model(x), y)
 
 # Accuracy function - talvez esteja com problema
 function accuracy(x,y,_model)
@@ -80,30 +80,30 @@ parameters = Flux.params(model);
 accs = []
 @info("Beginning training loop...")
 for epoch_idx in ProgressBar(1:epochs)
-    train_img_set  = load_batch(batch_size, epoch_idx,  img_height, img_width, train_img_paths)
-    train_mask_set = load_batch(batch_size, epoch_idx,  img_height, img_width, train_mask_paths)
+    train_img_set  = load_batch(batch_size, 1,  img_height, img_width, train_img_paths)
+    train_mask_set = load_batch(batch_size, 1,  img_height, img_width, train_mask_paths)
     @info "dataset loaded"
     # Training for a single epoch
     Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
     @info "trained"
     # Ending conditions
-    acc = accuracy(val_img_set, val_img_set, model)
-    push!(accs, acc)
-    @show acc
-    if acc >= 0.95
-        @info(" -> Early-exiting: We reached 95% accuracy")
-        break
-    end
-    # Saving model if best accuracy
-    if acc >= best_acc
-        @info(" -> New best accuracy. Saving model")
-        BSON.@save "u_net.bson" params=cpu.(Flux.params(model)) epoch_idx acc
-        global best_acc = acc
-        global last_improvement = epoch_idx
-    end
+    # acc = accuracy(val_img_set, val_img_set, model)
+    # push!(accs, acc)
+    # @show acc
+    # if acc >= 0.95
+    #     @info(" -> Early-exiting: We reached 95% accuracy")
+    #     break
+    # end
+    # # Saving model if best accuracy
+    # if acc >= best_acc
+    #     @info(" -> New best accuracy. Saving model")
+    #     BSON.@save "u_net.bson" params=cpu.(Flux.params(model)) epoch_idx acc
+    #     global best_acc = acc
+    #     global last_improvement = epoch_idx
+    # end
 end
 
-plot(1:length(accs), accs, title="Accuracy over epochs", lw=3, label=false)
+# plot(1:length(accs), accs, title="Accuracy over epochs", lw=3, label=false)
 ##
 ###########################################
 #           Validating the model
