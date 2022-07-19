@@ -51,7 +51,7 @@ val_mask_paths = shuffled_masks[1:val_samples]
 
 model = unet_model(img_height, img_width, img_channels, num_classes)
 # Loss function
-loss(x,y) = Flux.crossentropy(model(x), y)
+loss(x,y) = Flux.logitbinarycrossentropy(model(x), y)
 
 
 # Loading model and dataset onto GPU
