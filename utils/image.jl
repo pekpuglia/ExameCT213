@@ -22,3 +22,9 @@ function load_batch(batch_size::Int, batch_index::Int, img_width::Int, img_heigh
     return cat([img_to_mat(imresize(load(path), (img_width, img_height)))
             for path in path_list[batch_size*batch_index+1:(batch_index+1)*batch_size]]..., dims=4)
 end
+
+# Loading validation images
+function load_val_images(img_width::Int, img_height::Int, path_list::Vector{String})
+    return cat([img_to_mat(imresize(load(path), (img_width, img_height)))
+            for path in path_list]..., dims=4)
+end

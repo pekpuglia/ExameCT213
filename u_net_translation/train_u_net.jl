@@ -7,6 +7,7 @@ using Colors
 using CUDA
 include("../utils/image.jl")
 include("../u_net_translation/u_net_model.jl")
+include("../utils/accuracy.jl")
 
 
 ##
@@ -52,19 +53,8 @@ model = unet_model(img_height, img_width, img_channels, num_classes)
 # Loss function
 loss(x,y) = Flux.crossentropy(model(x), y)
 
-# Accuracy function
-function accuracy(x,y,_model)
-    acc = 0
-    y_hat = Flux.onecold(cpu(y))
-    batch_size = size(y_hat, 3)
-    for i in 1:batch_size
-        acc += sum(Flux.onecold(cpu(model(val_img_set)))[:,:,i] .== Flux.onecold(cpu(val_mask_set))[:,:,i])/size(y_hat,1)
-    end
-    return acc = acc/batch_size
-end
 
 # Loading model and dataset onto GPU
-# model = gpu(model)
 # train_img_set = gpu.(train_img_set)
 # train_mask_set = gpu.(train_mask_set)
 # val_img_set = gpu.(val_img_set)
@@ -73,11 +63,11 @@ end
 
 # Training options
 opt = ADAM(0.01)
-best_acc = 0.0
 last_improvement = 0
-parameters = Flux.params(model);
 losses = []
 accs = []
+best_acc = 0.0
+acc = -1
 ##
 @info("Beginning training loop...")
 for epoch_idx in ProgressBar(1:epochs)
@@ -85,10 +75,10 @@ for epoch_idx in ProgressBar(1:epochs)
     train_mask_set = load_batch(batch_size, epoch_idx,  img_height, img_width, train_mask_paths)
     @info "dataset loaded"
     # Training for a single epoch
-    Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
+    Flux.train!(loss, Flux.params(model), [(train_img_set, train_mask_set)], opt)
     @info "trained"
     # Ending conditions
-    acc = accuracy(train_img_set, train_mask_set, model)
+    global acc = accuracy(train_img_set, train_mask_set, model)
     current_loss = loss(train_img_set,train_mask_set)
     push!(losses, current_loss)
     push!(accs, acc)
@@ -99,7 +89,7 @@ for epoch_idx in ProgressBar(1:epochs)
         break
     end
     # Saving model if best accuracy
-    if acc >= best_acc
+    if  acc >= best_acc
         @info(" -> New best accuracy. Saving model")
         BSON.@save "u_net.bson" params=cpu.(Flux.params(model)) epoch_idx acc
         global best_acc = acc
@@ -110,7 +100,11 @@ end
 ###########################################
 #           Validating the model
 ###########################################
+val_img_set = load_batch(100, 1, img_height, img_width, val_img_paths)
+val_mask_set = load_batch(100, 1, img_height, img_width, val_mask_paths)
+
 BSON.@load "u_net.bson" params
 Flux.loadparams!(model, params)
-@show accuracy(val_img_set, val_mask_set, model)
-lot(1:30, losses, title="Loss over epochs", lw=3, label=false)
+plot(1:30, losses, title="Loss over epochs", lw=3, label=false)
+savefig("loss_2.png")
+@show accuracy(model(val_img_set), val_mask_set, model)
