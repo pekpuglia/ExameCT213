@@ -14,7 +14,7 @@ Random.seed!(3)
 
 # Training parameters
 batch_size = 1
-epochs = 1
+epochs = 10
 train_ratio = 0.85
 val_ratio = 1 - train_ratio
 num_classes = 2
@@ -79,6 +79,8 @@ last_improvement = 0
 parameters = Flux.params(model);
 accs = []
 @info("Beginning training loop...")
+# Flux.testmode!(model, false)
+Flux.testmode!(model, :auto)
 for epoch_idx in ProgressBar(1:epochs)
     train_img_set  = load_batch(batch_size, 1,  img_height, img_width, train_img_paths)
     train_mask_set = load_batch(batch_size, 1,  img_height, img_width, train_mask_paths)
@@ -102,6 +104,7 @@ for epoch_idx in ProgressBar(1:epochs)
     #     global last_improvement = epoch_idx
     # end
 end
+# Flux.testmode!(model, true)
 
 # plot(1:length(accs), accs, title="Accuracy over epochs", lw=3, label=false)
 ##

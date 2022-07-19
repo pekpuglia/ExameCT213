@@ -13,7 +13,7 @@ end
 
 function img_to_mat(mask::Matrix{Gray{N0f8}})
     #each png pixel has either 0x0 or 0x1 
-    return getproperty.(mask, :val) .> 0
+    return Float32.(getproperty.(mask, :val) .> 0)
 end
 
 #gentler approach to image Loading: load single batch
