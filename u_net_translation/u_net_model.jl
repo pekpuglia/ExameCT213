@@ -135,22 +135,18 @@ function unet_model(img_height, img_width, img_channel, num_classes)
                                         bottleneck_block,
                                         (mx, x) -> cat(mx, x, dims=3)
                                     ),
-                                    debug_layer,
                                     expanding_block_1
                                 ),
                                 (mx, x) -> cat(mx, x, dims=3)
                             ),
-                            debug_layer,
                             expanding_block_2
                         ),
                         (mx, x) -> cat(mx, x, dims=3)
                     ),
-                    debug_layer,
                     expanding_block_3
                 ),
                 (mx, x) -> cat(mx, x, dims=3)
             ),
-            debug_layer,
             expanding_block_4
         ),
         output_layer

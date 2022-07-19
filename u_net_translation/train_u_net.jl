@@ -2,6 +2,7 @@ using Printf, BSON
 using Random
 using ProgressBars
 using FileIO, Plots, ImageShow, Images
+using Statistics
 using Colors
 using CUDA
 include("../utils/image.jl")
@@ -51,6 +52,17 @@ model = unet_model(img_height, img_width, img_channels, num_classes)
 # Loss function
 loss(x,y) = Flux.crossentropy(model(x), y)
 
+# Accuracy function
+function accuracy(x,y,_model)
+    acc = 0
+    y_hat = Flux.onecold(cpu(y))
+    batch_size = size(y_hat, 3)
+    for i in 1:batch_size
+        acc += sum(Flux.onecold(cpu(model(val_img_set)))[:,:,i] .== Flux.onecold(cpu(val_mask_set))[:,:,i])/size(y_hat,1)
+    end
+    return acc = acc/batch_size
+end
+
 # Loading model and dataset onto GPU
 # model = gpu(model)
 # train_img_set = gpu.(train_img_set)
@@ -64,6 +76,8 @@ opt = ADAM(0.01)
 best_acc = 0.0
 last_improvement = 0
 parameters = Flux.params(model);
+losses = []
+accs = []
 ##
 @info("Beginning training loop...")
 for epoch_idx in ProgressBar(1:epochs)
@@ -73,12 +87,13 @@ for epoch_idx in ProgressBar(1:epochs)
     # Training for a single epoch
     Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
     @info "trained"
-    # Terminate if NaN
-    if anynan(parameters)
-        @error "NaN params"
-        break
-    end
     # Ending conditions
+    acc = accuracy(train_img_set, train_mask_set, model)
+    current_loss = loss(train_img_set,train_mask_set)
+    push!(losses, current_loss)
+    push!(accs, acc)
+    @show acc
+    @show current_loss
     if acc >= 0.95
         @info(" -> Early-exiting: We reached 95% accuracy")
         break
@@ -86,7 +101,7 @@ for epoch_idx in ProgressBar(1:epochs)
     # Saving model if best accuracy
     if acc >= best_acc
         @info(" -> New best accuracy. Saving model")
-        BSON.@save joinpath(args.savepath, "u_net.bson") params=cpu.(params(model)) epoch_idx acc
+        BSON.@save "u_net.bson" params=cpu.(Flux.params(model)) epoch_idx acc
         global best_acc = acc
         global last_improvement = epoch_idx
     end
@@ -95,7 +110,7 @@ end
 ###########################################
 #           Validating the model
 ###########################################
-BSON.@load joinpath(args.savepath, "u_net.bson") params
+BSON.@load "u_net.bson" params
 Flux.loadparams!(model, params)
-accuracy(x,y,model) = mean(onecold(cpu(model(x)))) .== onecold(cpu(y))
 @show accuracy(val_img_set, val_mask_set, model)
+lot(1:30, losses, title="Loss over epochs", lw=3, label=false)
