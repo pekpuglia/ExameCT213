@@ -62,40 +62,26 @@ loss(x,y) = Flux.crossentropy(model(x), y)
 ##
 
 # Training options
-opt = ADAM(0.01)
 last_improvement = 0
 losses = []
 accs = []
 best_acc = 0.0
 acc = -1
+
+
 ##
 @info("Beginning training loop...")
-for epoch_idx in ProgressBar(1:epochs)
-    train_img_set  = load_batch(batch_size, epoch_idx,  img_height, img_width, train_img_paths)
-    train_mask_set = load_batch(batch_size, epoch_idx,  img_height, img_width, train_mask_paths)
-    @info "dataset loaded"
-    # Training for a single epoch
-    Flux.train!(loss, Flux.params(model), [(train_img_set, train_mask_set)], opt)
-    @info "trained"
-    # Ending conditions
-    global acc = accuracy(train_img_set, train_mask_set, model)
-    current_loss = loss(train_img_set,train_mask_set)
-    push!(losses, current_loss)
-    push!(accs, acc)
-    @show acc
-    @show current_loss
-    if acc >= 0.95
-        @info(" -> Early-exiting: We reached 95% accuracy")
-        break
-    end
-    # Saving model if best accuracy
-    if  acc >= best_acc
-        @info(" -> New best accuracy. Saving model")
-        BSON.@save "u_net.bson" params=cpu.(Flux.params(model)) epoch_idx acc
-        global best_acc = acc
-        global last_improvement = epoch_idx
-    end
-end
+train_img_set  = load_batch(400, 1,  img_height, img_width, train_img_paths)
+train_mask_set = load_batch(400, 1,  img_height, img_width, train_mask_paths)
+data = Flux.DataLoader((train_img_set,train_mask_set), batchsize=16)
+@info "dataset loaded"
+
+opt = ADAM()
+ps = Flux.params(model)
+eval_cb() = @show(loss(train_img_set, train_mask_set))
+#eval_cb() = @show(loss(train_img_set, train_mask_set))
+Flux.@epochs 16 Flux.train!(loss, ps, data, opt, cb = eval_cb)
+BSON.@save "u_net.bson" Flux.params(model)
 ##
 ###########################################
 #           Validating the model
@@ -103,8 +89,8 @@ end
 val_img_set = load_batch(100, 1, img_height, img_width, val_img_paths)
 val_mask_set = load_batch(100, 1, img_height, img_width, val_mask_paths)
 
-BSON.@load "u_net.bson" params
-Flux.loadparams!(model, params)
-plot(1:30, losses, title="Loss over epochs", lw=3, label=false)
-savefig("loss_2.png")
+BSON.@load "u_net.bson" 
+#Flux.loadparams!(model, params)
+#plot(1:30, losses, title="Loss over epochs", lw=3, label=false)
+#savefig("loss_2.png")
 @show accuracy(model(val_img_set), val_mask_set, model)
