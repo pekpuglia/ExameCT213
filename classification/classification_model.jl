@@ -27,9 +27,9 @@ function classification_model(img_height, img_width, img_channel)
 
 
     second_block = Chain(
-        DepthwiseConv((3,3), 8 => 3),
+        DepthwiseConv((3,3), 8 => 8, stride=(1,2,1,2)),
         BatchNorm(8),
-        DepthwiseConv((3,3), 3 => 8),
+        DepthwiseConv((3,3), 8 => 8, stride=(1,2,1,2)),
         BatchNorm(8, relu),
         MaxPool((3,3), stride=(2,2)),
         debug_layer
