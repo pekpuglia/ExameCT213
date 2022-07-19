@@ -52,13 +52,14 @@ model = unet_model(img_height, img_width, img_channels, num_classes)
 # Loss function
 loss(x,y) = Flux.crossentropy(model(x), y)
 
-# Accuracy function
+# Accuracy function - talvez esteja com problema
 function accuracy(x,y,_model)
     acc = 0
+    #verificar o que o onecold faz, as dimensões, etc
     y_hat = Flux.onecold(cpu(y))
     batch_size = size(y_hat, 3)
     for i in 1:batch_size
-        acc += sum(Flux.onecold(cpu(model(val_img_set)))[:,:,i] .== Flux.onecold(cpu(val_mask_set))[:,:,i])/size(y_hat,1)
+        acc += sum(Flux.onecold(model(x))[:,:,i] .== Flux.onecold(y)[:,:,i])/size(y_hat,1)
     end
     return acc = acc/batch_size
 end
@@ -76,9 +77,7 @@ opt = ADAM(0.01)
 best_acc = 0.0
 last_improvement = 0
 parameters = Flux.params(model);
-losses = []
 accs = []
-##
 @info("Beginning training loop...")
 for epoch_idx in ProgressBar(1:epochs)
     train_img_set  = load_batch(batch_size, epoch_idx,  img_height, img_width, train_img_paths)
@@ -88,12 +87,9 @@ for epoch_idx in ProgressBar(1:epochs)
     Flux.train!(loss, parameters, [(train_img_set, train_mask_set)], opt)
     @info "trained"
     # Ending conditions
-    acc = accuracy(train_img_set, train_mask_set, model)
-    current_loss = loss(train_img_set,train_mask_set)
-    push!(losses, current_loss)
+    acc = accuracy(val_img_set, val_img_set, model)
     push!(accs, acc)
     @show acc
-    @show current_loss
     if acc >= 0.95
         @info(" -> Early-exiting: We reached 95% accuracy")
         break
@@ -106,11 +102,19 @@ for epoch_idx in ProgressBar(1:epochs)
         global last_improvement = epoch_idx
     end
 end
+
+plot(1:length(accs), accs, title="Accuracy over epochs", lw=3, label=false)
 ##
 ###########################################
 #           Validating the model
 ###########################################
 BSON.@load "u_net.bson" params
 Flux.loadparams!(model, params)
-@show accuracy(val_img_set, val_mask_set, model)
-lot(1:30, losses, title="Loss over epochs", lw=3, label=false)
+acc = 0
+for epoch_idx in 1:epochs
+    val_img_set = load_batch(5, 1, img_width, img_height, val_img_paths)
+    val_mask_set = load_batch(5, 1, img_width, img_height, val_mask_paths)
+    acc += accuracy(val_img_set, val_mask_set, model)
+end
+acc /= epochs
+@show acc
